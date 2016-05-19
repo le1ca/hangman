@@ -139,7 +139,7 @@ class ActiveGame (object):
         
         if self.word is not None:
             r['cleanword'] = self.getCleanWord()
-            r['word'] = r['cleanword'] if clean else self.word
+            r['word'] = r['cleanword'] if (clean and self.attempts > 0) else self.word
         
             if all(s in self.guesses or not s in ActiveGame._filtered for s in self.word):
                 r['winner'] = 2

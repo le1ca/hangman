@@ -131,6 +131,11 @@
                     if(s.winner == 1){
                         $(".result").html("Player 1 wins!");
                         $(".result-container").css('display', 'block');
+                        
+                        if(playerNo == 2){
+                            
+                        }
+                        
                     }
                     else if(s.winner == 2){
                         $(".result").html("Player 2 wins!");
@@ -268,6 +273,7 @@
         </div>
         <div class="result-container">
             <span class="result"></span>
+            The answer was: <br/> <span class="word"></span>
             <a href="#" class="rematch">Rematch?</a>
         </div>
     </div>
