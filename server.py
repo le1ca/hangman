@@ -57,7 +57,7 @@ class ActiveGame (object):
             
             # remove game if it is now empty
             if g.empty():
-                destroyGame(g.gid)
+                ActiveGame.destroyGame(g.gid)
                 
     def __init__(self, gid):
         self.gid = gid
