@@ -31,11 +31,18 @@ class ActiveGame (object):
         if g.gid in ActiveGame._games:
             raise Exception()
         ActiveGame._games[g.gid] = g
+        logging.info("new game %s registered" % g.gid)
     
     @staticmethod
     def destroyGame(gid):
         if gid in ActiveGame._games:
+            g = ActiveGame._games[gid]
+            if g.p1 is not None and g.p1 in ActiveGame._sessions:
+                del ActiveGame._sessions[g.p1]
+            if g.p2 is not None and g.p2 in ActiveGame._sessions:
+                del ActiveGame._sessions[g.p2]
             del ActiveGame._games[gid]
+            logging.info("game %s destroyed" % gid)
         
     @staticmethod
     def handleDisconnect(sid):
