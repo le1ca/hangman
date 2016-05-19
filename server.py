@@ -31,7 +31,6 @@ class ActiveGame (object):
         if g.gid in ActiveGame._games:
             raise Exception()
         ActiveGame._games[g.gid] = g
-        logging.info("new game %s registered" % g.gid)
     
     @staticmethod
     def destroyGame(gid):
@@ -42,7 +41,6 @@ class ActiveGame (object):
             if g.p2 is not None and g.p2 in ActiveGame._sessions:
                 del ActiveGame._sessions[g.p2]
             del ActiveGame._games[gid]
-            logging.info("game %s destroyed" % gid)
         
     @staticmethod
     def handleDisconnect(sid):
@@ -75,6 +73,9 @@ class ActiveGame (object):
         self.attempts = 6
         self.r1 = False
         self.r2 = False
+        self.s1 = 0
+        self.s2 = 0
+        self.over = False
         ActiveGame.registerGame(self)
     
     def reset(self):
@@ -83,9 +84,11 @@ class ActiveGame (object):
         self.attempts = 6
         self.r1 = False
         self.r2 = False
+        self.over = False
     
     def swap(self):
         self.p1, self.p2 = self.p2, self.p1
+        self.s1, self.s2 = self.s2, self.s1
     
     def join(self, sid):
         if self.p1 is None:
@@ -97,7 +100,7 @@ class ActiveGame (object):
             ActiveGame._sessions[sid] = self
             return 2
         else:
-            return 0
+            return 3
     
     def ready(self):
         return self.p1 is not None and self.p2 is not None
@@ -150,10 +153,19 @@ class ActiveGame (object):
         
             if all(s in self.guesses or not s in ActiveGame._filtered for s in self.word):
                 r['winner'] = 2
+                if not self.over:
+                    self.s2 += 1
+                    self.over = True
             
             if self.attempts == 0:
                 r['winner'] = 1
+                if not self.over:
+                    self.s1 += 1
+                    self.over = True
         
+        r['p1score'] = self.s1
+        r['p2score'] = self.s2
+            
         return r
         
     
@@ -188,12 +200,8 @@ def ws_join(room):
     
     status = g.join(request.sid)
     
-    if status == 0:
-        emit("error", "game already in progress")
-        return
-    else:
-        join_room(room)
-        emit("waiting", status)
+    join_room(room)
+    emit("waiting", status)
         
     if g.ready():
         emit("ready", room=room)

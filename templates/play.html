@@ -30,8 +30,6 @@
             var playerNo = 0;
             var maxGuesses = 6;
             var rematch = false;
-            var p1proto = $("#app-p1").html();
-            var p2proto = $("#app-p2").html();
             
             activate("#loading");
             socket.emit('join', gameid);
@@ -42,6 +40,9 @@
                 }
                 else if(playerNo == 2){
                     activate("#app-p2");
+                }
+                else if(playerNo == 3){
+                    activate("#app-observer");
                 }
                 socket.emit('getstat', gameid);
             });
@@ -92,6 +93,13 @@
             
             socket.on('status', function(s){
             
+                // display scores
+                $(".p1score").html(s.p1score);
+                $(".p2score").html(s.p2score);
+                $(".myscore").html(playerNo == 1 ? s.p1score : s.p2score);
+                $(".theirscore").html(playerNo == 2 ? s.p1score : s.p2score);
+                $(".scores").css('display', 'block');
+            
                 // we are p1, need to choose word
                 if(playerNo == 1 && s.word == null){
                     $('#app-p1-choose').css('display', 'block');
@@ -106,6 +114,14 @@
                 }
                 else{
                     $("#app-p2-choose").css('display', 'none');
+                }
+                
+                // we are an observer, waiting for word to be chosen
+                if(playerNo == 3 && s.word == null){
+                    $("#app-observer-choose").css('display', 'block');
+                }
+                else{
+                    $("#app-observer-choose").css('display', 'none');
                 }
                 
                 // word is chosen
@@ -186,12 +202,27 @@
             display: none;
         }
         
-        .word, .cleanword{
+        .word, .cleanword {
             font-family: monospace;
             letter-spacing:4pt;
             font-size:16pt;
             display:block;
             padding:8pt;
+        }
+        
+        .scores {
+            display: none;
+            margin-top:8pt;
+        }
+        
+        .scores:before {
+            content: 'Scores:';
+            font-weight:bold;
+        }
+        
+        .scores, .scores tr, .scores td {
+            border: none;
+            text-align:left;
         }
     </style>
 </head>
@@ -205,9 +236,13 @@
     </div>
     <div id="app-p1">
         Ready. You are player <span class="pn"></span>.
+        <table class="scores">
+            <tr><th>You:</th>  <td><td class="myscore"></td></tr>
+            <tr><th>Other:</th><td><td class="theirscore"></td></tr>
+        </table>
         <hr/>
         <div id="app-p1-choose">
-            Choose a word:
+            Choose a phrase:
             <form id="app-p1-choose-form" method="post">
                 <input name="word"/>
                 <input name="submit" type="submit" value="Submit"/>
@@ -242,6 +277,10 @@
     </div>
     <div id="app-p2">
         Ready. You are player <span class="pn"></span>.
+        <table class="scores">
+            <tr><th>You:</th>  <td><td class="myscore"></td></tr>
+            <tr><th>Other:</th><td><td class="theirscore"></td></tr>
+        </table>
         <hr/>
         <div id="app-p2-choose">
             Waiting for Player 1 to choose a phrase...
@@ -253,7 +292,7 @@
             </p>
             
             <p>
-                Enter a guess:
+                Guess a letter:
                 <form id="app-p2-guess-form" method="post">
                     <input name="guess" size="1"/>
                     <input name="submit" type="submit" value="Submit"/>
@@ -275,6 +314,38 @@
             <span class="result"></span>
             The answer was: <br/> <span class="word"></span>
             <a href="#" class="rematch">Rematch?</a>
+        </div>
+    </div>
+    <div id="app-observer">
+        Ready. You are observing.
+        <table class="scores">
+            <tr><th>Player 1:</th><td><td class="p1score"></td></tr>
+            <tr><th>Player 2:</th><td><td class="p2score"></td></tr>
+        </table>
+        <hr/>
+        <div id="app-observer-choose">
+            Waiting for Player 1 to choose a phrase...
+        </div>
+        <div class="word-container">
+            <p>
+                Player 2 is guessing:<br/>
+                <span class="cleanword"></span>
+            </p>
+            
+            <p>
+                Player 2 has guessed:
+                <ul class="guesses">
+                </ul>
+            </p>
+            
+            <p>
+                <span class="attempts"></span> attempts remaining.
+            </p>
+            
+        </div>
+        <div class="result-container">
+            <span class="result"></span>
+            The answer was: <br/> <span class="word"></span>
         </div>
     </div>
 </body>
