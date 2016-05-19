@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>hangman</title>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+    <script type="text/javascript">
+        
+        var activeDiv = null;
+        
+        function activate(div){
+            if(activeDiv != null){
+                $(activeDiv).css('display', 'none');
+            }
+            $(div).css('display', 'block');
+            activeDiv = div;
+        }
+        
+        $(document).ready(function(){
+            var url = "http://" + document.domain + ":" + location.port;
+            var socket = io.connect(url);
+            
+            if(location.hash.indexOf("game-") == -1){
+                $(document.body).html("error -- invalid game url");
+                return;
+            }
+            
+            var gameid = location.hash.substring(6);
+            var gameurl = url + "/play#game-" + gameid;
+            var playerNo = 0;
+            var maxGuesses = 6;
+            var rematch = false;
+            var p1proto = $("#app-p1").html();
+            var p2proto = $("#app-p2").html();
+            
+            activate("#loading");
+            socket.emit('join', gameid);
+
+            socket.on('ready', function(gameState){
+                if(playerNo == 1){
+                    activate("#app-p1");
+                }
+                else if(playerNo == 2){
+                    activate("#app-p2");
+                }
+                socket.emit('getstat', gameid);
+            });
+            
+            socket.on('error', function(msg){
+                $(document.body).html("error -- " + msg);
+            });
+            
+            socket.on('refresh', function(){
+                socket.emit('getstat', gameid);
+            });
+            
+            socket.on('swap', function(){
+                // reset app
+                $(".rematch").html("Rematch?");
+                $(".result-container").css("display", "none");
+                $(".word-container").css("display", "none");
+                $('#app-p1-choose').css('display', 'none');
+                $('#app-p2-choose').css('display', 'none');
+                $("#app-p2-guess").css("display", "none");
+                
+                // swap player number
+                if(playerNo == 1){
+                    playerNo = 2;
+                    activate("#app-p2");
+                }
+                else if(playerNo == 2){
+                    playerNo = 1;
+                    activate("#app-p1");
+                }
+                $('.pn').html(playerNo);
+                
+                // get update
+                socket.emit('getstat', gameid);
+                
+            });
+            
+            socket.on('waiting', function(p){
+                playerNo = p;
+                $('.pn').html(playerNo);
+                $('#urlspan').val(gameurl);
+                $('#urlspan').attr('size', gameurl.length);
+                $('#urlspan').click(function(){
+                    $(this).select();
+                });
+                activate("#waiting");
+            });
+            
+            socket.on('status', function(s){
+            
+                // we are p1, need to choose word
+                if(playerNo == 1 && s.word == null){
+                    $('#app-p1-choose').css('display', 'block');
+                }
+                else{
+                    $('#app-p1-choose').css('display', 'none');
+                }
+                
+                // we are p2, waiting for word to be chosen
+                if(playerNo == 2 && s.word == null){
+                    $("#app-p2-choose").css('display', 'block');
+                }
+                else{
+                    $("#app-p2-choose").css('display', 'none');
+                }
+                
+                // word is chosen
+                if(s.word != null){
+                    $(".word-container").css('display', 'block');
+                    $(".word").html(s.word);
+                    $(".cleanword").html(s.cleanword);
+                    $(".attempts").html(s.attempts);
+                    
+                    // display guesses
+                    if(s.guesses.length == 0){
+                        $(".guesses").html("<li>(Nothing yet)</li>");
+                    }
+                    else{
+                        items = "";
+                        for(var i = 0; i < s.guesses.length; i++){
+                            items += "<li>" + s.guesses[i] + "</li>"
+                        }
+                        $(".guesses").html(items);
+                    }
+                    
+                    // display result if game is over
+                    if(s.winner == 1){
+                        $(".result").html("Player 1 wins!");
+                        $(".result-container").css('display', 'block');
+                    }
+                    else if(s.winner == 2){
+                        $(".result").html("Player 2 wins!");
+                        $(".result-container").css('display', 'block');
+                    }
+                }
+                
+            });
+            
+            socket.on('badguess', function(){
+                // meh
+            });
+            
+            $(window).on('beforeunload', function(){
+                socket.disconnect();
+            });
+            
+            $("#app-p1-choose-form").on("submit", function(){
+                socket.emit('word', gameid, this.word.value);
+                this.word.value = "";
+                return false;
+            });
+            
+            $("#app-p2-guess-form").on("submit", function(){
+                socket.emit('guess', gameid, this.guess.value);
+                this.guess.value = "";
+                return false;
+            });
+            
+            $(".rematch").click(function(){
+                socket.emit('rematch', gameid);
+                $(".rematch").html("Waiting for other player...");
+                return false;
+            });
+            
+        });
+        
+    </script>
+    <style type="text/css">
+        body > div{
+            display: none;
+        }
+        
+        body > div > div{
+            display: none;
+        }
+        
+        .word, .cleanword{
+            font-family: monospace;
+            letter-spacing:4pt;
+            font-size:16pt;
+            display:block;
+            padding:8pt;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        Please wait...
+    </div>
+    <div id="waiting">
+        Waiting for other player to join. You are player <span class="pn"></span>.<br/>
+        Send your friend a link to <input id="urlspan" readonly></span>.
+    </div>
+    <div id="app-p1">
+        Ready. You are player <span class="pn"></span>.
+        <hr/>
+        <div id="app-p1-choose">
+            Choose a word:
+            <form id="app-p1-choose-form" method="post">
+                <input name="word"/>
+                <input name="submit" type="submit" value="Submit"/>
+            </form>
+        </div>
+        <div class="word-container">
+            <p>
+                Player 2 is trying to guess:<br/>
+                <span class="word"></span>
+            </p>
+            
+            <p>
+                Their progress is:<br/>
+                <span class="cleanword"></span>
+            </p>
+            
+            <p>
+                Player 2 has guessed:
+                <ul class="guesses">
+                </ul>
+            </p>
+            
+            <p>
+                <span class="attempts"></span> attempts remaining.
+            </p>
+            
+            <div class="result-container">
+                <span class="result"></span>
+                <a href="#" class="rematch">Rematch?</a>
+            </div>
+        </div>
+    </div>
+    <div id="app-p2">
+        Ready. You are player <span class="pn"></span>.
+        <hr/>
+        <div id="app-p2-choose">
+            Waiting for Player 1 to choose a phrase...
+        </div>
+        <div class="word-container">
+            <p>
+                Guess this phrase:<br/>
+                <span class="cleanword"></span>
+            </p>
+            
+            <p>
+                Enter a guess:
+                <form id="app-p2-guess-form" method="post">
+                    <input name="guess" size="1"/>
+                    <input name="submit" type="submit" value="Submit"/>
+                </form>
+            </p>
+            
+            <p>
+                You have guessed:
+                <ul class="guesses">
+                </ul>
+            </p>
+            
+            <p>
+                <span class="attempts"></span> attempts remaining.
+            </p>
+            
+        </div>
+        <div class="result-container">
+            <span class="result"></span>
+            <a href="#" class="rematch">Rematch?</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>hangman</title>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+    <script type="text/javascript">
+        
+        $(document).ready(function(){
+            var url = "http://" + document.domain + ":" + location.port;
+            var socket = io.connect(url);
+            
+            $("#newgame").click(function(){
+                socket.emit('newgame');
+            });
+            
+            socket.on('newgame', function(id){
+                window.location = "http://" + document.domain + ":" + location.port + "/play#game-" + id;
+            });
+            
+        });
+        
+    </script>
+</head>
+<body>
+    <p>
+        To start a new game of hangman,
+        <a href='#' onclick='return false;' id='newgame'>click here</a>.
+    </p>
+</body>
+</html>
