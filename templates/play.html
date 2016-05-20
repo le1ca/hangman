@@ -6,6 +6,15 @@
     <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
     <script type="text/javascript">
         
+        var ascii = [
+            "  ____\n |    |\n      |\n      |\n      |\n      |\n   ___|___",
+            "  ____\n |    |\n O    |\n      |\n      |\n      |\n   ___|___",
+            "  ____\n |    |\n O    |\n |    |\n |    |\n      |\n   ___|___",
+            "  ____\n |    |\n O    |\n/|    |\n |    |\n      |\n   ___|___",
+            "  ____\n |    |\n O    |\n/|\\   |\n |    |\n      |\n   ___|___",
+            "  ____\n |    |\n O    |\n/|\\   |\n |    |\n/     |\n   ___|___",
+            "  ____\n |    |\n O    |\n/|\\   |\n |    |\n/ \\   |\n   ___|___"
+        ];
         var activeDiv = null;
         
         function activate(div){
@@ -80,6 +89,10 @@
                 
             });
             
+            socket.on('quit', function(){
+                $(document.body).html("The game has ended.");
+            });
+            
             socket.on('waiting', function(p){
                 playerNo = p;
                 $('.pn').html(playerNo);
@@ -99,6 +112,7 @@
                 $(".myscore").html(playerNo == 1 ? s.p1score : s.p2score);
                 $(".theirscore").html(playerNo == 2 ? s.p1score : s.p2score);
                 $(".scores").css('display', 'block');
+                $(".ascii").html(ascii[maxGuesses - s.attempts]);
             
                 // we are p1, need to choose word
                 if(playerNo == 1 && s.word == null){
@@ -133,12 +147,13 @@
                     
                     // display guesses
                     if(s.guesses.length == 0){
-                        $(".guesses").html("<li>(Nothing yet)</li>");
+                        $(".guesses").html("<li class='noguess'>(Nothing yet)</li>");
                     }
                     else{
                         items = "";
                         for(var i = 0; i < s.guesses.length; i++){
-                            items += "<li>" + s.guesses[i] + "</li>"
+                            var cls = s.word.indexOf(s.guesses[i]) > -1 ? 'goodguess' : 'badguess';
+                            items += "<li class='" + cls + "'>" + s.guesses[i] + "</li>"
                         }
                         $(".guesses").html(items);
                     }
@@ -147,11 +162,6 @@
                     if(s.winner == 1){
                         $(".result").html("Player 1 wins!");
                         $(".result-container").css('display', 'block');
-                        
-                        if(playerNo == 2){
-                            
-                        }
-                        
                     }
                     else if(s.winner == 2){
                         $(".result").html("Player 2 wins!");
@@ -215,15 +225,53 @@
             margin-top:8pt;
         }
         
-        .scores:before {
-            content: 'Scores:';
-            font-weight:bold;
+        .scorestitle{
+            border-bottom: 1px solid black;
         }
         
         .scores, .scores tr, .scores td {
             border: none;
             text-align:left;
         }
+        
+        .guesses {
+            list-style: none;
+            margin: 0px;
+            padding: 0px;
+        }
+        
+        .guesses li {
+            display: inline-block;
+            width:2em;
+            text-align:center;
+            font-family:monospace;
+        }
+        
+        .guesses li.noguess {
+            width:16em;
+            text-align:left;
+        }
+        
+        .guesses li.goodguess {
+            color: #008000;
+        }
+        
+        .guesses li.badguess {
+            color: #800000;
+        }
+        
+        div.ascii {
+            display:inline-block;
+            font-family:monospace;
+            font-size:10pt;
+            white-space:pre;
+            letter-spacing:-2pt;
+            line-height:9pt;
+            position:relative;
+            top:-0.8em;
+            left:1em;
+        }
+        
     </style>
 </head>
 <body>
@@ -231,14 +279,29 @@
         Please wait...
     </div>
     <div id="waiting">
-        Waiting for other player to join. You are player <span class="pn"></span>.<br/>
+        Waiting for other player to join. You are Player <span class="pn"></span>.<br/>
         Send your friend a link to <input id="urlspan" readonly></span>.
     </div>
     <div id="app-p1">
-        Ready. You are player <span class="pn"></span>.
+        Ready. You are Player <span class="pn"></span>.
         <table class="scores">
-            <tr><th>You:</th>  <td><td class="myscore"></td></tr>
-            <tr><th>Other:</th><td><td class="theirscore"></td></tr>
+            <tr>
+                <th class='scorestitle' colspan='2'>Scores:</th>
+                <td rowspan='4'>
+                    <div class='ascii'></div>
+                </td>
+            </tr>
+            <tr>
+                <th>Player 1:</th>
+                <td class="p1score"></td>
+            </tr>
+            <tr>
+                <th>Player 2:</th>
+                <td class="p2score"></td>
+            </tr>
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
         </table>
         <hr/>
         <div id="app-p1-choose">
@@ -276,10 +339,25 @@
         </div>
     </div>
     <div id="app-p2">
-        Ready. You are player <span class="pn"></span>.
+        Ready. You are Player <span class="pn"></span>.
         <table class="scores">
-            <tr><th>You:</th>  <td><td class="myscore"></td></tr>
-            <tr><th>Other:</th><td><td class="theirscore"></td></tr>
+            <tr>
+                <th class='scorestitle' colspan='2'>Scores:</th>
+                <td rowspan='4'>
+                    <div class='ascii'></div>
+                </td>
+            </tr>
+            <tr>
+                <th>Player 1:</th>
+                <td class="p1score"></td>
+            </tr>
+            <tr>
+                <th>Player 2:</th>
+                <td class="p2score"></td>
+            </tr>
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
         </table>
         <hr/>
         <div id="app-p2-choose">
@@ -319,8 +397,23 @@
     <div id="app-observer">
         Ready. You are observing.
         <table class="scores">
-            <tr><th>Player 1:</th><td><td class="p1score"></td></tr>
-            <tr><th>Player 2:</th><td><td class="p2score"></td></tr>
+            <tr>
+                <th class='scorestitle' colspan='2'>Scores:</th>
+                <td rowspan='4'>
+                    <div class='ascii'></div>
+                </td>
+            </tr>
+            <tr>
+                <th>Player 1:</th>
+                <td class="p1score"></td>
+            </tr>
+            <tr>
+                <th>Player 2:</th>
+                <td class="p2score"></td>
+            </tr>
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
         </table>
         <hr/>
         <div id="app-observer-choose">
@@ -328,7 +421,7 @@
         </div>
         <div class="word-container">
             <p>
-                Player 2 is guessing:<br/>
+                Player 2 is trying to guess:<br/>
                 <span class="cleanword"></span>
             </p>
             

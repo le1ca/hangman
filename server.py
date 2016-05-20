@@ -63,6 +63,9 @@ class ActiveGame (object):
             # remove game if it is now empty
             if g.empty():
                 ActiveGame.destroyGame(g.gid)
+                return True, g.gid
+        
+        return False, None
                 
     def __init__(self, gid):
         self.gid = gid
@@ -185,7 +188,10 @@ def ws_conn():
 
 @socketio.on('disconnect')
 def ws_disconn():
-    ActiveGame.handleDisconnect(request.sid)
+    term, room = ActiveGame.handleDisconnect(request.sid)
+    if term:
+        emit('quit', room=room)
+        
 
 @socketio.on('newgame')
 def ws_ngurl():
